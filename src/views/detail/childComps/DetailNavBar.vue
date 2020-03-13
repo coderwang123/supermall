@@ -28,6 +28,7 @@
     methods:{
       titleClick(index){
         this.currentIndex = index
+        this.$emit('detailNavClick',index)
       },
       backClick(){
         this.$router.back()

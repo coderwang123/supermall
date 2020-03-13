@@ -1,11 +1,14 @@
 <template>
   <div id="home" class="warpper">
-    <nav-bar class="home-nav"><div slot="center">购物街</div></nav-bar>
+    <nav-bar class="home-nav">
+      <div slot="center">购物街</div>
+    </nav-bar>
     <tab-control ref="tabControl1"
                  :title="['流行','新款','精选']"
                  @tabClick="tabClick"
                  v-show="isTabFixed" class="tab-control">
     </tab-control>
+
     <scroll class="content" ref="scroll"
             :probe-type="3" @scroll="contentScroll"
             :pull-up-load="true" @pullingUp="loadmore">
@@ -24,41 +27,40 @@
 </template>
 
 <script>
-import HomeSwiper from "views/home/childComps/HomeSwiper";
-import RecommendView from "views/home/childComps/RecommendView";
-import FeatureView from "views/home/childComps/FeatureView";
+  import HomeSwiper from "views/home/childComps/HomeSwiper";
+  import RecommendView from "views/home/childComps/RecommendView";
+  import FeatureView from "views/home/childComps/FeatureView";
 
-import NavBar from 'components/common/navbar/NavBar'
-import Scroll from "../../components/common/scroll/Scroll";
+  import NavBar from 'components/common/navbar/NavBar'
+  import Scroll from "components/common/scroll/Scroll";
 
-import TabControl from "components/content/tabControl/TabControl";
-import GoodsList from "components/content/goods/GoodsList";
-import BackTop from "../../components/content/backTop/BackTop";
+  import TabControl from "components/content/tabControl/TabControl";
+  import GoodsList from "components/content/goods/GoodsList";
 
-import {getHomeMultiDate,getHomeGoods} from 'network/home.js'
-import {debonce} from 'common/utils.js'
+
+  import {getHomeMultiDate, getHomeGoods} from 'network/home.js'
+  import {debonce} from 'common/utils.js'
+  import {itemListenerMixin,backTopMinix} from "common/mixin";
 
   export default {
     name: "Home",
-    data(){
+    mixins:[itemListenerMixin,backTopMinix], // 混入监听图片的代码 ,混入回到顶部的代码
+    data() {
       return {
-        banners:[],
-        dKeywords:[],
-        keywords:[],
-        recommends:[],
-        goods:{
-          'pop':{page:0,list:[]},
-          'new':{page:0,list:[]},
-          'sell':{page:0,list:[]}
+        banners: [],
+        recommends: [],
+        goods: {
+          'pop': {page: 0, list: []},
+          'new': {page: 0, list: []},
+          'sell': {page: 0, list: []}
         },
-        currentType:'pop',
-        isShowBackTop:false,
-        tabOffsetTop:0,
-        isTabFixed:false,
-        saveY:0
+        currentType: 'pop',
+        tabOffsetTop: 0,
+        isTabFixed: false,
+        saveY: 0
       }
     },
-    created(){
+    created() {
       // 1.请求多个数据
       this.getHomeMultiDate()
 
@@ -66,32 +68,27 @@ import {debonce} from 'common/utils.js'
       this.getHomeGoods('pop')
       this.getHomeGoods('new')
       this.getHomeGoods('sell')
+
     },
-    mounted() {
-      // 1.监听item中全部图片加载完成 （利用事件总线）
-      const refresh = debonce(this.$refs.scroll.refresh,300)
-      this.$bus.$on('itemImageLoad',()=>{
-        refresh()
-      })
-    },
-    activated(){
-      this.$refs.scroll.scrollTo(0,this.saveY,0)
+    activated() {
+      this.$refs.scroll.scrollTo(0, this.saveY, 0)
       this.$refs.scroll.refresh()
     },
-    deactivated(){
+    deactivated() {
       this.saveY = this.$refs.scroll.getScrollY()
+      this.$bus.$off('itemImageLoad',this.itemImgListener)
     },
-    computed:{
-      showgoods(){
+    computed: {
+      showgoods() {
         return this.goods[this.currentType].list
       }
     },
-    destroyed(){
-      console.log('销毁了')
-    },
-    methods:{
+    // destroyed(){
+    //   console.log('销毁了')
+    // },
+    methods: {
       // 事件监听方法
-      tabClick(index){
+      tabClick(index) {
         // console.log(index)
         switch (index) {
           case 0:
@@ -108,50 +105,53 @@ import {debonce} from 'common/utils.js'
         this.$refs.tabControl2.controlIndex = index
         // console.log(this.$refs.tabControl2.controlIndex)
       },
-      backClick(){
-        this.$refs.scroll.scrollTo(0,0)
-      },
-      contentScroll(position){
+
+      contentScroll(position) {
         // 1.判断 BackTop 是否显示
-        this.isShowBackTop = (-position.y) > 1000
+        this.listenerBackTop(position)
 
         // 2.判断tabControl 是否吸顶
         this.isTabFixed = (-position.y) > this.tabOffsetTop
       },
-      loadmore(){
+      loadmore() {
         this.getHomeGoods(this.currentType)
       },
-      swiperImageLoad(){
+      swiperImageLoad() {
         // 2.获取tabControl的 offsetTop
         // 所有的组件都有一个属性$el:勇于获取组件中的元素
         this.tabOffsetTop = this.$refs.tabControl2.$el.offsetTop
       },
 
       // 请求数据方法
-      getHomeMultiDate(){
-        getHomeMultiDate().then(res =>{
-              console.log(res);
-              this.banners = res.data.banner.list;
-              this.dKeywords = res.data.dKeyword.list;
-              this.keywords = res.data.keywords.list;
-              this.recommends = res.data.recommend.list;
+      getHomeMultiDate() {
+        getHomeMultiDate().then(res => {
+              // console.log(res);
+              if (res.data) {
+                this.banners = res.data.banner.list;
+                this.recommends = res.data.recommend.list;
+              }
             }
         )
       },
-      getHomeGoods(type){
+      getHomeGoods(type) {
         const page = this.goods[type].page + 1
-        getHomeGoods(type,page).then(
+        getHomeGoods(type, page).then(
             res => {
-              for(let item of res.data.list)
-              this.goods[type].list.push(item)
-              this.goods[type].page += 1
-              this.$refs.scroll.finishPullUp()
-              console.log(res)
+              if(res.data.list){
+                for (let item of res.data.list)
+                  this.goods[type].list.push(item)
+                this.goods[type].page += 1
+                this.$refs.scroll.finishPullUp()
+                // console.log(res)
+              }
+
             }
-        )
+        ).catch(err=>{
+          console.log('服务器异常')
+        })
       }
     },
-    components:{
+    components: {
       HomeSwiper,
       RecommendView,
       FeatureView,
@@ -159,23 +159,25 @@ import {debonce} from 'common/utils.js'
       TabControl,
       GoodsList,
       Scroll,
-      BackTop,
       debonce
     }
   }
 </script>
 
 <style scoped>
-  #home{
+  #home {
     height: 100vh;
     position: relative;
   }
-  .home-nav{
+
+  .home-nav {
     background-color: var(--color-tint);
     color: #ffffff;
+    /*position: relative;*/
     width: 100%;
   }
-  .content{
+
+  .content {
     /*flex: 1;*/
     overflow: hidden;
     position: absolute;
@@ -183,7 +185,10 @@ import {debonce} from 'common/utils.js'
     bottom: 49px;
     left: 0;
     right: 0;
+
+    /*height: 100vh;*/
   }
+
   .tab-control {
     position: relative;
     z-index: 9;

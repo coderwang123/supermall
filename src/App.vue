@@ -1,6 +1,6 @@
 <template>
   <div id="app" class="warpper">
-    <keep-alive>
+    <keep-alive exclude="Detail">
       <router-view/>
     </keep-alive>
 <!--    <router-view/>-->
