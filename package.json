@@ -19,10 +19,10 @@
     "vuex-persistedstate": "^2.7.0"
   },
   "devDependencies": {
-    "@vue/cli-service": "^3.12.0",
+    "@vue/cli-service": "^5.0.8",
     "node-sass": "^4.13.0",
     "postcss-px-to-viewport": "^1.1.1",
-    "sass-loader": "^8.0.1",
+    "sass-loader": "^13.2.0",
     "vue-template-compiler": "^2.6.10"
   }
 }
